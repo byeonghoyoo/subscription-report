@@ -1,0 +1,305 @@
+<title>AI·SaaS 구독 지출 리포트</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#f3f5f8;--surface:#ffffff;--surface-2:#e9edf2;--line:#d7dde5;
+  --ink:#131a22;--ink-2:#4b5563;--ink-3:#7d8794;
+  --accent:#0f766e;--accent-ink:#ffffff;
+  --s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--s4:#eda100;
+  --good:#1a7f37;--warn:#b45309;--crit:#c2410c;--muted-chip:#e5e7eb;
+  --grid:#e3e8ee;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f1419;--surface:#171d24;--surface-2:#1f272f;--line:#2b343e;
+    --ink:#f2f4f7;--ink-2:#b8c0ca;--ink-3:#7f8a96;
+    --accent:#2dd4bf;--accent-ink:#0f1419;
+    --s1:#3987e5;--s2:#d95926;--s3:#199e70;--s4:#c98500;
+    --good:#3fb950;--warn:#e3a008;--crit:#f97316;--muted-chip:#2b343e;
+    --grid:#242d37;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f1419;--surface:#171d24;--surface-2:#1f272f;--line:#2b343e;
+  --ink:#f2f4f7;--ink-2:#b8c0ca;--ink-3:#7f8a96;
+  --accent:#2dd4bf;--accent-ink:#0f1419;
+  --s1:#3987e5;--s2:#d95926;--s3:#199e70;--s4:#c98500;
+  --good:#3fb950;--warn:#e3a008;--crit:#f97316;--muted-chip:#2b343e;
+  --grid:#242d37;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans KR",system-ui,-apple-system,"Apple SD Gothic Neo",sans-serif;font-size:15px;line-height:1.55;font-variant-numeric:tabular-nums}
+.mono{font-family:"IBM Plex Mono","SFMono-Regular",Menlo,monospace}
+.wrap{max-width:1180px;margin:0 auto;padding:40px 28px 72px;display:flex;flex-direction:column;gap:36px}
+header{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:16px;border-bottom:1px solid var(--line);padding-bottom:20px}
+.eyebrow{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:700}
+h1{margin:4px 0 0;font-size:30px;font-weight:700;letter-spacing:-.01em;text-wrap:balance}
+.sub{color:var(--ink-2);margin:6px 0 0;max-width:62ch}
+.meta{color:var(--ink-3);font-size:13px;text-align:right}
+h2{font-size:17px;margin:0 0 4px;font-weight:700}
+.h2sub{color:var(--ink-3);font-size:13px;margin:0 0 14px}
+section{display:flex;flex-direction:column}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:16px 18px;display:flex;flex-direction:column;gap:4px}
+.tile .lbl{font-size:12px;color:var(--ink-3);letter-spacing:.06em;text-transform:uppercase;font-weight:500}
+.tile .val{font-size:26px;font-weight:600;letter-spacing:-.01em}
+.tile .delta{font-size:13px;color:var(--ink-2)}
+.delta.up{color:var(--crit)}.delta.down{color:var(--good)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:820px){.grid2{grid-template-columns:1fr}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:18px 20px;min-width:0}
+.card svg{width:100%;height:auto;display:block;overflow:visible}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px;color:var(--ink-2);margin-top:10px}
+.legend span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px;background:var(--c)}
+.axis text{fill:var(--ink-3);font-size:11px;font-family:"IBM Plex Mono",monospace}
+.grid line{stroke:var(--grid);stroke-width:1}
+.dl{fill:var(--ink);font-size:12px;font-family:"IBM Plex Mono",monospace;font-weight:500}
+.dl.sec{fill:var(--ink-2);font-size:11px}
+.bar{rx:0}
+.hit{fill:transparent;cursor:default}
+.tip{position:fixed;pointer-events:none;background:var(--ink);color:var(--bg);font-size:12px;padding:6px 9px;border-radius:4px;opacity:0;transition:opacity .12s;white-space:nowrap;z-index:9;font-family:"IBM Plex Mono",monospace}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th,td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+td.mono,td.num{white-space:nowrap}
+th{font-size:12px;color:var(--ink-3);font-weight:500;letter-spacing:.04em;white-space:nowrap;background:var(--surface)}
+td.num,th.num{text-align:right;font-family:"IBM Plex Mono",monospace}
+.tablewrap{overflow-x:auto}
+.chip{display:inline-block;font-size:11.5px;padding:1px 8px;border-radius:999px;font-weight:500;white-space:nowrap;border:1px solid transparent}
+.chip.on{background:color-mix(in srgb,var(--good) 14%,transparent);color:var(--good);border-color:color-mix(in srgb,var(--good) 35%,transparent)}
+.chip.off{background:color-mix(in srgb,var(--crit) 12%,transparent);color:var(--crit);border-color:color-mix(in srgb,var(--crit) 35%,transparent)}
+.chip.new{background:color-mix(in srgb,var(--s1) 14%,transparent);color:var(--s1);border-color:color-mix(in srgb,var(--s1) 35%,transparent)}
+.chip.down{background:color-mix(in srgb,var(--s4) 18%,transparent);color:var(--warn);border-color:color-mix(in srgb,var(--s4) 40%,transparent)}
+.chip.grey{background:var(--muted-chip);color:var(--ink-2)}
+.filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.filters button{font:inherit;font-size:13px;padding:5px 12px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink-2);cursor:pointer}
+.filters button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.filters button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.list{display:flex;flex-direction:column;gap:0}
+.row{display:grid;grid-template-columns:64px 1fr auto;gap:12px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line);font-size:14px}
+.row:last-child{border-bottom:0}
+.row .d{font-weight:600}
+.row .n{color:var(--ink-2);font-size:12.5px}
+.note{font-size:13px;color:var(--ink-3);border-left:2px solid var(--line);padding-left:12px;margin-top:6px}
+.memo{color:var(--ink-3);font-size:12.5px;max-width:34ch}
+footer{color:var(--ink-3);font-size:12.5px;border-top:1px solid var(--line);padding-top:16px}
+@media (prefers-reduced-motion:reduce){.tip{transition:none}}
+</style>
+
+<div class="wrap">
+<header>
+  <div>
+    <div class="eyebrow">Beauty Blossom · Marketing Ops</div>
+    <h1>AI·SaaS 구독 지출 리포트</h1>
+    <p class="sub">2026년 6월 – 8월 결제 현황. Google Sheets「구독비용 통합」시트를 원본으로 원화 환산 금액(구독료 + 추가 사용료)을 집계했습니다. Gemini API는 실제 사용액 기준입니다.</p>
+  </div>
+  <div class="meta">기준일 2026-08-24<br>적용 환율 USD 1 = ₩1,380.49<br>8월은 24일까지 집계 (진행 중)</div>
+</header>
+
+<section>
+  <div class="tiles" id="tiles"></div>
+</section>
+
+<section class="grid2">
+  <div class="card">
+    <h2>월별 총 지출</h2>
+    <p class="h2sub">구독료 + 추가 사용료, 원화 환산</p>
+    <div id="monthly"></div>
+  </div>
+  <div class="card">
+    <h2>분류별 구성</h2>
+    <p class="h2sub">월별 스택 · 4개 분류</p>
+    <div id="stack"></div>
+    <div class="legend" id="stackLegend"></div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>도구별 지출 순위</h2>
+  <p class="h2sub" id="rankSub"></p>
+  <div class="filters" id="rankFilters" role="group" aria-label="월 선택"></div>
+  <div id="rank"></div>
+</section>
+
+<section class="grid2">
+  <div class="card">
+    <h2>다가오는 갱신</h2>
+    <p class="h2sub">기준일 이후 30일 이내 · 진행중 항목</p>
+    <div class="list" id="renewals"></div>
+  </div>
+  <div class="card">
+    <h2>해지·변경 이력</h2>
+    <p class="h2sub">해지 완료, 플랜 변경, 신규</p>
+    <div class="list" id="changes"></div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>전체 결제 내역</h2>
+  <p class="h2sub">시트 원본 그대로 · 월 선택으로 필터</p>
+  <div class="filters" id="tableFilters" role="group" aria-label="월 선택"></div>
+  <div class="tablewrap"><table id="ledger"><thead><tr>
+    <th>월</th><th>상태</th><th>도구</th><th>분류</th><th>주기</th><th class="num">결제금액</th><th class="num">원화환산</th><th class="num">추가금</th><th>다음 갱신</th><th>메모</th>
+  </tr></thead><tbody></tbody></table></div>
+  <p class="note">Gemini API는 결제금액(실사용액)만 집계하며 충전액은 포함하지 않습니다. 나머지 도구의 추가금은 실제 추가 사용료로 합산했습니다. 6월 Gemini API는 시트의 결제금액(322,729)과 원화환산(304,365)이 달라 원화환산 값을 사용했습니다.</p>
+</section>
+
+<footer>원본: Google Sheets「AI · SaaS 구독 비용 통합 관리」· 원화 환산 = 결제금액 × 적용환율 · 총액 = 원화환산 + 추가금 (Gemini API는 결제금액만)</footer>
+</div>
+<div class="tip" id="tip"></div>
+
+<script>
+const DATA = [{"month": "2026-06", "status": "진행중", "tool": "Gemini API", "cat": "자동화/API", "cycle": "변동", "cur": "KRW", "amt": 322729.0, "rate": 1.0, "krw": 304365.0, "renew": "", "dday": "", "rstate": "날짜 확인 필요", "acct": "", "memo": "6월 API 실결제 · 한도 40만원으로 증액", "extra": 0, "note": "2026-06", "grp": "API·인프라"}, {"month": "2026-06", "status": "진행중", "tool": "GPT (Codex)", "cat": "에이전트", "cycle": "월간", "cur": "KRW", "amt": 159000.0, "rate": 1.0, "krw": 159000.0, "renew": "2026-07-01", "dday": "-54", "rstate": "갱신일 경과", "acct": "", "memo": "6월 실결제 금액", "extra": 0.0, "note": "2026-06", "grp": "에이전트·LLM"}, {"month": "2026-06", "status": "진행중", "tool": "Claude", "cat": "에이전트", "cycle": "월간", "cur": "USD", "amt": 100.0, "rate": 1380.49, "krw": 138049.0, "renew": "2026-07-02", "dday": "-53", "rstate": "갱신일 경과", "acct": "", "memo": "6월 $100 결제", "extra": 0.0, "note": "2026-07", "grp": "에이전트·LLM"}, {"month": "2026-06", "status": "진행중", "tool": "Higgsfield", "cat": "이미지·영상", "cycle": "월간", "cur": "USD", "amt": 250.0, "rate": 1380.49, "krw": 345123.0, "renew": "2026-07-02", "dday": "-53", "rstate": "갱신일 경과", "acct": "", "memo": "6월 $250 결제 · 이후 $64.90로 변경", "extra": 0.0, "note": "2026-08", "grp": "이미지·영상·문서"}, {"month": "2026-06", "status": "진행중", "tool": "Cursor", "cat": "코딩 에이전트", "cycle": "월간", "cur": "USD", "amt": 60.0, "rate": 1380.49, "krw": 82829.0, "renew": "2026-07-19", "dday": "-36", "rstate": "갱신일 경과", "acct": "", "memo": "6월 결제 후 취소 설정", "extra": 0.0, "note": "", "grp": "에이전트·LLM"}, {"month": "2026-06", "status": "진행중", "tool": "Cloudflare", "cat": "자동방화 인프라", "cycle": "월간", "cur": "USD", "amt": 5.0, "rate": 1380.49, "krw": 6902.0, "renew": "2026-07-30", "dday": "-25", "rstate": "갱신일 경과", "acct": "", "memo": "6월 $5 결제", "extra": 0.0, "note": "", "grp": "API·인프라"}, {"month": "2026-06", "status": "해지", "tool": "Midjourney", "cat": "이미지 생성", "cycle": "월간", "cur": "USD", "amt": 48.0, "rate": 1380.49, "krw": 66264.0, "renew": "", "dday": "", "rstate": "해지 완료", "acct": "", "memo": "해지 완료", "extra": 0.0, "note": "", "grp": "이미지·영상·문서"}, {"month": "2026-06", "status": "해지", "tool": "Cloudinary 유료 플랜", "cat": "이미지 URL", "cycle": "월간", "cur": "USD", "amt": 30.0, "rate": 1380.49, "krw": 41415.0, "renew": "", "dday": "", "rstate": "해지 완료", "acct": "", "memo": "무료 플랜 전환 완료", "extra": 0.0, "note": "", "grp": "이미지·영상·문서"}, {"month": "2026-07", "status": "진행중", "tool": "Gemini API", "cat": "자동화/API", "cycle": "변동", "cur": "KRW", "amt": 286346.0, "rate": 1.0, "krw": 286346.0, "renew": "2026-08-01", "dday": "-23", "rstate": "갱신일 경과", "acct": "", "memo": "API 금액 직접 입력", "extra": 0, "note": "", "grp": "API·인프라"}, {"month": "2026-07", "status": "진행중", "tool": "GPT (Codex)", "cat": "에이전트", "cycle": "월간", "cur": "KRW", "amt": 144545.0, "rate": 1.0, "krw": 144545.0, "renew": "2026-08-01", "dday": "-23", "rstate": "갱신일 경과", "acct": "", "memo": "7월 실결제 금액 기준", "extra": 0.0, "note": "", "grp": "에이전트·LLM"}, {"month": "2026-07", "status": "진행중", "tool": "Claude", "cat": "에이전트", "cycle": "월간", "cur": "USD", "amt": 200.0, "rate": 1380.49, "krw": 276098.0, "renew": "2026-08-03", "dday": "-21", "rstate": "갱신일 경과", "acct": "", "memo": "$100 → $200 업그레이드", "extra": 0.0, "note": "", "grp": "에이전트·LLM"}, {"month": "2026-07", "status": "해지", "tool": "Higgsfield", "cat": "이미지·영상", "cycle": "월간", "cur": "USD", "amt": 64.9, "rate": 1380.49, "krw": 89594.0, "renew": "2026-08-02", "dday": "", "rstate": "해지 완료", "acct": "", "memo": "갱신일 계정 확인 필요", "extra": 0.0, "note": "7/29해지", "grp": "이미지·영상·문서"}, {"month": "2026-07", "status": "진행중", "tool": "Sync", "cat": "립싱크", "cycle": "월간", "cur": "USD", "amt": 19.0, "rate": 1380.49, "krw": 26229.0, "renew": "2026-08-01", "dday": "-23", "rstate": "갱신일 경과", "acct": "doctor.leegh@gmail.com", "memo": "구독료 외 사용료는 P열에 입력", "extra": 77372.0, "note": "", "grp": "음성·립싱크"}, {"month": "2026-07", "status": "진행중", "tool": "MiniMax", "cat": "더빙", "cycle": "월간", "cur": "USD", "amt": 5.0, "rate": 1380.49, "krw": 6902.0, "renew": "2026-08-21", "dday": "-3", "rstate": "갱신일 경과", "acct": "doctor.leegh@gmail.com", "memo": "", "extra": 0.0, "note": "", "grp": "음성·립싱크"}, {"month": "2026-07", "status": "진행중", "tool": "Cloudflare", "cat": "자동발행 인프라", "cycle": "월간", "cur": "USD", "amt": 0.0, "rate": 1380.49, "krw": 7298.0, "renew": "2026-07-30", "dday": "-25", "rstate": "갱신일 경과", "acct": "", "memo": "7월 원본 지출표에 없음 · 결제 확인 후 입력", "extra": 0.0, "note": "", "grp": "API·인프라"}, {"month": "2026-07", "status": "해지", "tool": "Cursor", "cat": "코딩 에이전트", "cycle": "월간", "cur": "USD", "amt": 0.0, "rate": 1380.49, "krw": 0.0, "renew": "2026-07-19", "dday": "", "rstate": "해지 완료", "acct": "", "memo": "7월 원본: 취소선·금액 없음", "extra": 0.0, "note": "", "grp": "에이전트·LLM"}, {"month": "2026-08", "status": "진행중", "tool": "Gemini API", "cat": "자동화/API", "cycle": "변동", "cur": "KRW", "amt": 163993.0, "rate": 1.0, "krw": 163993.0, "renew": "", "dday": "", "rstate": "날짜 확인 필요", "acct": "", "memo": "8/24 기준", "extra": 0, "note": "", "grp": "API·인프라"}, {"month": "2026-08", "status": "진행중", "tool": "GPT (Codex)", "cat": "에이전트", "cycle": "월간", "cur": "KRW", "amt": 144545.0, "rate": 1.0, "krw": 144545.0, "renew": "2026-09-01", "dday": "8", "rstate": "30일 이내", "acct": "", "memo": "", "extra": 0.0, "note": "", "grp": "에이전트·LLM"}, {"month": "2026-08", "status": "진행중", "tool": "Claude", "cat": "에이전트", "cycle": "월간", "cur": "USD", "amt": 200.0, "rate": 1380.49, "krw": 276098.0, "renew": "2026-09-03", "dday": "10", "rstate": "30일 이내", "acct": "", "memo": "", "extra": 0.0, "note": "", "grp": "에이전트·LLM"}, {"month": "2026-08", "status": "진행중", "tool": "Sync", "cat": "립싱크", "cycle": "월간", "cur": "USD", "amt": 30.6, "rate": 1380.49, "krw": 42243.0, "renew": "2026-09-01", "dday": "8", "rstate": "30일 이내", "acct": "", "memo": "", "extra": 0.0, "note": "", "grp": "음성·립싱크"}, {"month": "2026-08", "status": "해지", "tool": "MiniMax", "cat": "더빙", "cycle": "월간", "cur": "USD", "amt": 5.0, "rate": 1380.49, "krw": 6902.0, "renew": "2026-09-21", "dday": "", "rstate": "해지 완료", "acct": "", "memo": "8/20 무료플랜전환 ,8/8 해지신청완료", "extra": 0.0, "note": "", "grp": "음성·립싱크"}, {"month": "2026-08", "status": "진행중", "tool": "Cloudflare", "cat": "자동발행 인프라", "cycle": "월간", "cur": "USD", "amt": 5.0, "rate": 1380.49, "krw": 6902.0, "renew": "2026-09-30", "dday": "37", "rstate": "정상", "acct": "", "memo": "", "extra": 0.0, "note": "", "grp": "API·인프라"}, {"month": "2026-07", "status": "진행중", "tool": "adobe", "cat": "문서 및 이미지", "cycle": "월간", "cur": "KRW", "amt": 26400.0, "rate": 1.0, "krw": 26400.0, "renew": "2026-08-16", "dday": "-8", "rstate": "갱신일 경과", "acct": "", "memo": "", "extra": 0.0, "note": "", "grp": "이미지·영상·문서"}, {"month": "2026-07", "status": "진행중", "tool": "figma", "cat": "이미지·영상", "cycle": "월간", "cur": "USD", "amt": 20.0, "rate": 1380.49, "krw": 27610.0, "renew": "2026-08-08", "dday": "-16", "rstate": "갱신일 경과", "acct": "", "memo": "", "extra": 0.0, "note": "", "grp": "이미지·영상·문서"}, {"month": "2026-07", "status": "진행중", "tool": "capcut", "cat": "이미지·영상", "cycle": "연간", "cur": "KRW", "amt": 0.0, "rate": 1.0, "krw": 0.0, "renew": "2027-07-19", "dday": "329", "rstate": "정상", "acct": "", "memo": "", "extra": 0.0, "note": "", "grp": "이미지·영상·문서"}, {"month": "2026-07", "status": "진행중", "tool": "Loveart", "cat": "이미지.영상", "cycle": "월간", "cur": "USD", "amt": 79.0, "rate": 1380.49, "krw": 109059.0, "renew": "2026-08-29", "dday": "5", "rstate": "7일 이내", "acct": "", "memo": "", "extra": 0.0, "note": "", "grp": "이미지·영상·문서"}, {"month": "2026-08", "status": "진행중", "tool": "adobe", "cat": "문서 및 이미지", "cycle": "월간", "cur": "KRW", "amt": 26400.0, "rate": 1.0, "krw": 26400.0, "renew": "2026-09-16", "dday": "23", "rstate": "30일 이내", "acct": "", "memo": "", "extra": 0.0, "note": "", "grp": "이미지·영상·문서"}, {"month": "2026-08", "status": "진행중", "tool": "figma", "cat": "이미지·영상", "cycle": "월간", "cur": "USD", "amt": 20.0, "rate": 1380.49, "krw": 27610.0, "renew": "2026-09-08", "dday": "15", "rstate": "30일 이내", "acct": "", "memo": "", "extra": 0.0, "note": "", "grp": "이미지·영상·문서"}, {"month": "2026-08", "status": "진행중", "tool": "capcut", "cat": "이미지·영상", "cycle": "연간", "cur": "KRW", "amt": 0.0, "rate": 1.0, "krw": 0.0, "renew": "2027-08-19", "dday": "360", "rstate": "정상", "acct": "", "memo": "", "extra": 0.0, "note": "", "grp": "이미지·영상·문서"}, {"month": "2026-08", "status": "해지", "tool": "Loveart", "cat": "이미지.영상", "cycle": "월간", "cur": "USD", "amt": 79.0, "rate": 1380.49, "krw": 109059.0, "renew": "2026-09-29", "dday": "", "rstate": "해지 완료", "acct": "", "memo": "구독 취소예약/8/29 /사유 사용량 저하/툴 구조상 취소후 구독 해야함(플랜변경 불가)", "extra": 0.0, "note": "8/29", "grp": "이미지·영상·문서"}, {"month": "2026-08", "status": "플랜하향", "tool": "Claude", "cat": "LLM전용", "cycle": "월간", "cur": "USD", "amt": 100.0, "rate": 1380.49, "krw": 138049.0, "renew": "9/3", "dday": "", "rstate": "정상", "acct": "", "memo": "8/21 다운그레이드->9/3부터 100$ 플랜적용 / doctor.leegh@gmail.com 계정", "extra": 0.0, "note": "", "grp": "에이전트·LLM"}, {"month": "2026-08", "status": "신규", "tool": "Claude", "cat": "코딩에이전트전용", "cycle": "월간", "cur": "USD", "amt": 200.0, "rate": 1380.49, "krw": 276098.0, "renew": "9/21", "dday": "", "rstate": "정상", "acct": "", "memo": "geonhoda@gmail.com 계정", "extra": 0.0, "note": "", "grp": "에이전트·LLM"}];
+const MONTHS = ['2026-06','2026-07','2026-08'];
+const GRPS = ['에이전트·LLM','API·인프라','이미지·영상·문서','음성·립싱크'];
+const GC = {'에이전트·LLM':'var(--s1)','API·인프라':'var(--s2)','이미지·영상·문서':'var(--s3)','음성·립싱크':'var(--s4)'};
+const won = n => '₩' + Math.round(n).toLocaleString('ko-KR');
+const wonK = n => n>=1e6 ? (n/1e6).toFixed(2)+'M' : Math.round(n/1000)+'k';
+const isCharge = d => /Gemini/.test(d.tool);
+const cost = d => d.krw + (isCharge(d)?0:d.extra);
+const tip = document.getElementById('tip');
+function bindTip(el, text){
+  el.addEventListener('mousemove', e=>{tip.textContent=text;tip.style.opacity=1;tip.style.left=(e.clientX+12)+'px';tip.style.top=(e.clientY+12)+'px';});
+  el.addEventListener('mouseleave', ()=>tip.style.opacity=0);
+}
+const svgNS='http://www.w3.org/2000/svg';
+const el=(t,a={},p)=>{const n=document.createElementNS(svgNS,t);for(const k in a)n.setAttribute(k,a[k]);if(p)p.appendChild(n);return n;};
+
+// ---- aggregates
+const byMonth = {}; MONTHS.forEach(m=>byMonth[m]=DATA.filter(d=>d.month===m));
+const totals = MONTHS.map(m=>byMonth[m].reduce((s,d)=>s+cost(d),0));
+const active = m => byMonth[m].filter(d=>d.status!=='해지');
+const cancelled = DATA.filter(d=>d.status==='해지');
+
+// ---- tiles
+const T = document.getElementById('tiles');
+const d07=totals[2]-totals[1], pct=d07/totals[1]*100;
+const three = totals.reduce((a,b)=>a+b,0);
+[
+ {l:'8월 지출 (24일 기준)', v:won(totals[2]), d:`7월 대비 ${d07>=0?'+':''}${won(d07)} (${pct.toFixed(1)}%)`, cls:d07>=0?'up':'down'},
+ {l:'3개월 누적', v:won(three), d:'월 평균 '+won(three/3)},
+ {l:'8월 진행 중 구독', v:active('2026-08').length+'개', d:'해지 완료 '+cancelled.length+'건 (누적)'},
+ {l:'30일 내 갱신', v:DATA.filter(d=>d.month==='2026-08'&&/이내/.test(d.rstate)).length+'건', d:'가장 빠른 갱신 8/29 Loveart(해지 예약)'},
+].forEach(t=>{T.insertAdjacentHTML('beforeend',`<div class="tile"><div class="lbl">${t.l}</div><div class="val mono">${t.v}</div><div class="delta ${t.cls||''}">${t.d}</div></div>`)});
+
+// ---- monthly bars
+(function(){
+  const W=520,H=260,pl=48,pr=16,pt=20,pb=34;
+  const s=el('svg',{viewBox:`0 0 ${W} ${H}`,role:'img','aria-label':'월별 총 지출'});
+  const max=Math.max(...totals)*1.15;
+  const y=v=>pt+(H-pt-pb)*(1-v/max);
+  const g=el('g',{class:'grid'},s), ax=el('g',{class:'axis'},s);
+  [0,0.5,1,1.5].map(v=>v*1e6).filter(v=>v<max).forEach(v=>{
+    el('line',{x1:pl,x2:W-pr,y1:y(v),y2:y(v)},g);
+    const t=el('text',{x:pl-8,y:y(v)+4,'text-anchor':'end'},ax);t.textContent=wonK(v);
+  });
+  const bw=64, step=(W-pl-pr)/3;
+  MONTHS.forEach((m,i)=>{
+    const x=pl+step*i+step/2-bw/2, v=totals[i], top=y(v), h=y(0)-top;
+    const p=el('path',{d:`M${x},${y(0)} v${-(h-4)} a4,4 0 0 1 4,-4 h${bw-8} a4,4 0 0 1 4,4 v${h-4} z`,fill:'var(--accent)',opacity:i===2?1:.75},s);
+    const l=el('text',{x:x+bw/2,y:top-8,'text-anchor':'middle',class:'dl'},s);l.textContent=won(v);
+    const t=el('text',{x:x+bw/2,y:H-12,'text-anchor':'middle'},ax);t.textContent=m.slice(0,4)+'년 '+parseInt(m.slice(5))+'월'+(i===2?' (진행중)':'');
+    const hit=el('rect',{x:pl+step*i,y:pt,width:step,height:H-pt-pb,class:'hit'},s);
+    bindTip(hit,`${m} · ${won(v)} · ${byMonth[m].length}개 항목`);
+  });
+  document.getElementById('monthly').appendChild(s);
+})();
+
+// ---- stacked by group
+(function(){
+  const W=520,H=260,pl=48,pr=16,pt=20,pb=34;
+  const s=el('svg',{viewBox:`0 0 ${W} ${H}`,role:'img','aria-label':'분류별 월 스택'});
+  const max=Math.max(...totals)*1.15;
+  const y=v=>pt+(H-pt-pb)*(1-v/max);
+  const g=el('g',{class:'grid'},s), ax=el('g',{class:'axis'},s);
+  [0,0.5,1,1.5].map(v=>v*1e6).filter(v=>v<max).forEach(v=>{
+    el('line',{x1:pl,x2:W-pr,y1:y(v),y2:y(v)},g);
+    const t=el('text',{x:pl-8,y:y(v)+4,'text-anchor':'end'},ax);t.textContent=wonK(v);
+  });
+  const bw=64, step=(W-pl-pr)/3;
+  MONTHS.forEach((m,i)=>{
+    const x=pl+step*i+step/2-bw/2; let acc=0;
+    GRPS.forEach(gname=>{
+      const v=byMonth[m].filter(d=>d.grp===gname).reduce((a,d)=>a+cost(d),0); if(!v)return;
+      const y1=y(acc+v), h=y(acc)-y1;
+      const r=el('rect',{x,y:y1+1,width:bw,height:Math.max(h-2,0),fill:GC[gname]},s);
+      bindTip(r,`${m} ${gname} · ${won(v)} (${(v/totals[i]*100).toFixed(0)}%)`);
+      if(h>18){const l=el('text',{x:x+bw/2,y:y1+h/2+4,'text-anchor':'middle',class:'dl sec'},s);l.textContent=(v/totals[i]*100).toFixed(0)+'%';l.setAttribute('fill','#fff');}
+      acc+=v;
+    });
+    const t=el('text',{x:x+bw/2,y:H-12,'text-anchor':'middle'},ax);t.textContent=parseInt(m.slice(5))+'월';
+  });
+  document.getElementById('stack').appendChild(s);
+  const L=document.getElementById('stackLegend');
+  GRPS.forEach(g=>L.insertAdjacentHTML('beforeend',`<span style="--c:${GC[g]}">${g}</span>`));
+})();
+
+// ---- ranking
+function renderRank(m){
+  const box=document.getElementById('rank'); box.innerHTML='';
+  const agg={}; byMonth[m].forEach(d=>{const k=d.tool+(d.status==='신규'||d.status==='플랜하향'?' ('+d.status+')':'');agg[k]=agg[k]||{v:0,grp:d.grp,st:d.status};agg[k].v+=cost(d);});
+  const items=Object.entries(agg).map(([k,o])=>({k,...o})).filter(o=>o.v>0).sort((a,b)=>b.v-a.v);
+  const rowH=30,pl=170,W=1000,H=items.length*rowH+8, max=items[0].v*1.18;
+  const s=el('svg',{viewBox:`0 0 ${W} ${H}`,role:'img','aria-label':m+' 도구별 지출'});
+  const x=v=>pl+(W-pl-120)*v/max;
+  items.forEach((o,i)=>{
+    const yy=i*rowH+4;
+    const n=el('text',{x:pl-12,y:yy+rowH/2+4,'text-anchor':'end',class:'dl'},s);n.textContent=o.k;
+    if(o.st==='해지')n.setAttribute('fill','var(--ink-3)');
+    const w=x(o.v)-pl;
+    el('path',{d:`M${pl},${yy+6} h${Math.max(w-4,0)} a4,4 0 0 1 4,4 v${rowH-20} a4,4 0 0 1 -4,4 h${-Math.max(w-4,0)} z`,fill:GC[o.grp],opacity:o.st==='해지'?.45:1},s);
+    const v=el('text',{x:x(o.v)+8,y:yy+rowH/2+4,class:'dl'},s);v.textContent=won(o.v)+(o.st==='해지'?' · 해지':'');
+    const hit=el('rect',{x:0,y:yy,width:W,height:rowH,class:'hit'},s);bindTip(hit,`${o.k} · ${o.grp} · ${won(o.v)}`);
+  });
+  box.appendChild(s);
+  document.getElementById('rankSub').textContent=`${m} · 총 ${won(totals[MONTHS.indexOf(m)])} · 분류 색상은 위 차트와 동일`;
+  document.querySelectorAll('#rankFilters button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.m===m));
+}
+const RF=document.getElementById('rankFilters');
+MONTHS.forEach(m=>{const b=document.createElement('button');b.textContent=parseInt(m.slice(5))+'월';b.dataset.m=m;b.onclick=()=>renderRank(m);RF.appendChild(b);});
+renderRank('2026-08');
+
+// ---- renewals
+(function(){
+  const box=document.getElementById('renewals');
+  const up=DATA.filter(d=>d.month==='2026-08'&&d.status!=='해지'&&d.renew).map(d=>{
+    let r=d.renew; if(/^\d{1,2}\/\d{1,2}$/.test(r)){const [mm,dd]=r.split('/');r=`2026-${mm.padStart(2,'0')}-${dd.padStart(2,'0')}`;}
+    return {...d,r};
+  }).filter(d=>d.r>='2026-08-24'&&d.r<='2026-09-30').sort((a,b)=>a.r.localeCompare(b.r));
+  up.forEach(d=>{
+    const dday=Math.round((new Date(d.r)-new Date('2026-08-24'))/86400000);
+    box.insertAdjacentHTML('beforeend',`<div class="row"><div class="d mono">${d.r.slice(5).replace('-','/')}</div><div>${d.tool}${d.status!=='진행중'?` <span class="chip ${d.status==='신규'?'new':'down'}">${d.status}</span>`:''}<div class="n">${d.cat} · D-${dday}${d.memo?' · '+d.memo:''}</div></div><div class="mono">${won(d.krw)}</div></div>`);
+  });
+  const sum=up.reduce((a,d)=>a+d.krw,0);
+  box.insertAdjacentHTML('beforeend',`<div class="row"><div></div><div class="d">예정 합계 (${up.length}건)</div><div class="mono" style="font-weight:600">${won(sum)}</div></div>`);
+})();
+
+// ---- changes
+(function(){
+  const box=document.getElementById('changes');
+  const seen=new Set();
+  const list=DATA.filter(d=>d.status!=='진행중').filter(d=>{const k=d.tool+d.status;if(seen.has(k))return false;seen.add(k);return true;})
+    .sort((a,b)=>b.month.localeCompare(a.month));
+  list.forEach(d=>{
+    const cls=d.status==='해지'?'off':d.status==='신규'?'new':'down';
+    box.insertAdjacentHTML('beforeend',`<div class="row"><div class="d mono">${parseInt(d.month.slice(5))}월</div><div>${d.tool} <span class="chip ${cls}">${d.status}</span><div class="n">${d.memo||d.cat}${d.note?' · '+d.note:''}</div></div><div class="mono">${d.status==='해지'?'−':''}${won(d.krw)}</div></div>`);
+  });
+  const saved=cancelled.filter(d=>d.krw>0).reduce((a,d)=>a+d.krw,0);
+  box.insertAdjacentHTML('beforeend',`<div class="row"><div></div><div class="d">해지로 줄어든 월 고정비</div><div class="mono" style="font-weight:600;color:var(--good)">−${won(saved)}</div></div>`);
+})();
+
+// ---- ledger
+function renderTable(m){
+  const tb=document.querySelector('#ledger tbody'); tb.innerHTML='';
+  const rows=DATA.filter(d=>m==='all'||d.month===m);
+  rows.forEach(d=>{
+    const cls=d.status==='진행중'?'on':d.status==='해지'?'off':d.status==='신규'?'new':'down';
+    tb.insertAdjacentHTML('beforeend',`<tr><td class="mono">${d.month}</td><td><span class="chip ${cls}">${d.status}</span></td><td>${d.tool}</td><td>${d.cat}</td><td>${d.cycle}</td><td class="num">${d.cur==='USD'?'$'+d.amt:d.amt.toLocaleString('ko-KR')}</td><td class="num">${won(d.krw)}</td><td class="num">${d.extra&&!isCharge(d)?won(d.extra):'–'}</td><td class="mono">${d.renew||'–'}</td><td><div class="memo">${d.memo||''}${d.note?' · '+d.note:''}</div></td></tr>`);
+  });
+  const t=rows.reduce((a,d)=>a+cost(d),0);
+  tb.insertAdjacentHTML('beforeend',`<tr><td colspan="6" style="font-weight:600">합계 (${rows.length}건)</td><td class="num" style="font-weight:600">${won(rows.reduce((a,d)=>a+d.krw,0))}</td><td class="num" style="font-weight:600">${won(rows.reduce((a,d)=>a+(isCharge(d)?0:d.extra),0))}</td><td colspan="2" class="mono" style="font-weight:600">총 ${won(t)}</td></tr>`);
+  document.querySelectorAll('#tableFilters button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.m===m));
+}
+const TF=document.getElementById('tableFilters');
+[['all','전체'],...MONTHS.map(m=>[m,parseInt(m.slice(5))+'월'])].forEach(([m,l])=>{const b=document.createElement('button');b.textContent=l;b.dataset.m=m;b.onclick=()=>renderTable(m);TF.appendChild(b);});
+renderTable('all');
+</script>
