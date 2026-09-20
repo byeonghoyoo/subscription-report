@@ -74,6 +74,9 @@ td.num,th.num{text-align:right;font-family:"IBM Plex Mono",monospace}
 .filters button{font:inherit;font-size:13px;padding:5px 12px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink-2);cursor:pointer}
 .filters button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 .filters button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.monthbar{display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-bottom:12px;font-size:13px;color:var(--ink-2)}
+.monthbar select{font:inherit;font-size:13px;padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
+.monthbar select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .list{display:flex;flex-direction:column;gap:0}
 .row{display:grid;grid-template-columns:64px 1fr auto;gap:12px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line);font-size:14px}
 .row:last-child{border-bottom:0}
@@ -96,6 +99,7 @@ footer{color:var(--ink-3);font-size:12.5px;border-top:1px solid var(--line);padd
 </header>
 
 <section>
+  <div class="monthbar"><label for="monthSel">월 선택</label><select id="monthSel"></select></div>
   <div class="tiles" id="tiles"></div>
 </section>
 
@@ -178,12 +182,31 @@ const three = totals.reduce((a,b)=>a+b,0);
 const normDate = r => /^\d{1,2}\/\d{1,2}$/.test(r) ? `2026-${r.split('/')[0].padStart(2,'0')}-${r.split('/')[1].padStart(2,'0')}` : r;
 const offKeys = new Set(DATA.filter(d=>d.status==='해지').map(d=>d.month+'|'+d.tool+'|'+normDate(d.renew)));
 const upcoming = DATA.filter(d=>d.month===CUR&&d.status!=='해지'&&d.renew&&!offKeys.has(d.month+'|'+d.tool+'|'+normDate(d.renew))).map(d=>({...d,r:normDate(d.renew)})).filter(d=>d.r>=BASE&&d.r<=BASE_END).sort((a,b)=>a.r.localeCompare(b.r));
-[
- {l:'9월 지출 (20일 기준)', v:won(totals[LAST]), d:`8월 대비 ${d07>=0?'+':'−'}${won(Math.abs(d07))} (${pct.toFixed(1)}%)`, cls:d07>=0?'up':'down'},
- {l:'4개월 누적', v:won(three), d:'월 평균 '+won(three/MONTHS.length)},
- {l:'9월 진행 중 구독', v:active(CUR).length+'개', d:'해지 완료 '+cancelled.length+'건 (누적)'},
- {l:'30일 내 갱신', v:upcoming.length+'건', d:upcoming.length?`가장 빠른 갱신 ${upcoming[0].r.slice(5).replace('-','/')} ${upcoming[0].tool}`:'예정 없음'},
-].forEach(t=>{T.insertAdjacentHTML('beforeend',`<div class="tile"><div class="lbl">${t.l}</div><div class="val mono">${t.v}</div><div class="delta ${t.cls||''}">${t.d}</div></div>`)});
+function renderTiles(sel){
+  T.innerHTML='';
+  let tiles;
+  if(sel==='all'){
+    tiles=[
+     {l:'9월 지출 (20일 기준)', v:won(totals[LAST]), d:`8월 대비 ${d07>=0?'+':'−'}${won(Math.abs(d07))} (${pct.toFixed(1)}%)`, cls:d07>=0?'up':'down'},
+     {l:'4개월 누적', v:won(three), d:'월 평균 '+won(three/MONTHS.length)},
+     {l:'9월 진행 중 구독', v:active(CUR).length+'개', d:'해지 완료 '+cancelled.length+'건 (누적)'},
+     {l:'30일 내 갱신', v:upcoming.length+'건', d:upcoming.length?`가장 빠른 갱신 ${upcoming[0].r.slice(5).replace('-','/')} ${upcoming[0].tool}`:'예정 없음'},
+    ];
+  }else{
+    const i=MONTHS.indexOf(sel), mm=parseInt(sel.slice(5)), rows=byMonth[sel];
+    const diff=i>0?totals[i]-totals[i-1]:null;
+    const sub=rows.reduce((a,d)=>a+d.krw,0);
+    const top=[...rows].sort((a,b)=>cost(b)-cost(a))[0];
+    tiles=[
+     {l:`${mm}월 지출`+(i===LAST?' (20일 기준)':''), v:won(totals[i]), d:diff===null?'첫 집계 월':`${parseInt(MONTHS[i-1].slice(5))}월 대비 ${diff>=0?'+':'−'}${won(Math.abs(diff))} (${(diff/totals[i-1]*100).toFixed(1)}%)`, cls:diff===null?'':diff>=0?'up':'down'},
+     {l:'구독료 (원화환산)', v:won(sub), d:'추가 사용료 '+won(totals[i]-sub)},
+     {l:`${mm}월 진행 중 구독`, v:active(sel).length+'개', d:`해지 ${rows.length-active(sel).length}건 · 전체 ${rows.length}개 항목`},
+     {l:'최대 지출 도구', v:top.tool, d:won(cost(top))+' · '+top.grp},
+    ];
+  }
+  tiles.forEach(t=>{T.insertAdjacentHTML('beforeend',`<div class="tile"><div class="lbl">${t.l}</div><div class="val mono">${t.v}</div><div class="delta ${t.cls||''}">${t.d}</div></div>`)});
+}
+renderTiles('all');
 
 // ---- monthly bars
 (function(){
@@ -199,8 +222,8 @@ const upcoming = DATA.filter(d=>d.month===CUR&&d.status!=='해지'&&d.renew&&!of
   const bw=64, step=(W-pl-pr)/MONTHS.length;
   MONTHS.forEach((m,i)=>{
     const x=pl+step*i+step/2-bw/2, v=totals[i], top=y(v), h=y(0)-top;
-    const p=el('path',{d:`M${x},${y(0)} v${-(h-4)} a4,4 0 0 1 4,-4 h${bw-8} a4,4 0 0 1 4,4 v${h-4} z`,fill:'var(--accent)',opacity:i===LAST?1:.75},s);
-    const l=el('text',{x:x+bw/2,y:top-8,'text-anchor':'middle',class:'dl'},s);l.textContent=won(v);
+    const p=el('path',{d:`M${x},${y(0)} v${-(h-4)} a4,4 0 0 1 4,-4 h${bw-8} a4,4 0 0 1 4,4 v${h-4} z`,fill:'var(--accent)',opacity:i===LAST?1:.75,'data-m':m},s);
+    const l=el('text',{x:x+bw/2,y:top-8,'text-anchor':'middle',class:'dl','data-m':m},s);l.textContent=won(v);
     const t=el('text',{x:x+bw/2,y:H-12,'text-anchor':'middle'},ax);t.textContent=parseInt(m.slice(5))+'월'+(i===LAST?' (진행중)':'');
     const hit=el('rect',{x:pl+step*i,y:pt,width:step,height:H-pt-pb,class:'hit'},s);
     bindTip(hit,`${m} · ${won(v)} · ${byMonth[m].length}개 항목`);
@@ -225,9 +248,9 @@ const upcoming = DATA.filter(d=>d.month===CUR&&d.status!=='해지'&&d.renew&&!of
     GRPS.forEach(gname=>{
       const v=byMonth[m].filter(d=>d.grp===gname).reduce((a,d)=>a+cost(d),0); if(!v)return;
       const y1=y(acc+v), h=y(acc)-y1;
-      const r=el('rect',{x,y:y1+1,width:bw,height:Math.max(h-2,0),fill:GC[gname]},s);
+      const r=el('rect',{x,y:y1+1,width:bw,height:Math.max(h-2,0),fill:GC[gname],'data-m':m},s);
       bindTip(r,`${m} ${gname} · ${won(v)} (${(v/totals[i]*100).toFixed(0)}%)`);
-      if(h>18){const l=el('text',{x:x+bw/2,y:y1+h/2+4,'text-anchor':'middle',class:'dl sec'},s);l.textContent=(v/totals[i]*100).toFixed(0)+'%';l.setAttribute('fill','#fff');}
+      if(h>18){const l=el('text',{x:x+bw/2,y:y1+h/2+4,'text-anchor':'middle',class:'dl sec','data-m':m},s);l.textContent=(v/totals[i]*100).toFixed(0)+'%';l.setAttribute('fill','#fff');}
       acc+=v;
     });
     const t=el('text',{x:x+bw/2,y:H-12,'text-anchor':'middle'},ax);t.textContent=parseInt(m.slice(5))+'월';
@@ -303,4 +326,15 @@ function renderTable(m){
 const TF=document.getElementById('tableFilters');
 [['all','전체'],...MONTHS.map(m=>[m,parseInt(m.slice(5))+'월'])].forEach(([m,l])=>{const b=document.createElement('button');b.textContent=l;b.dataset.m=m;b.onclick=()=>renderTable(m);TF.appendChild(b);});
 renderTable('all');
+
+// ---- month selector: drives tiles, chart highlight, ranking and ledger together
+const MS=document.getElementById('monthSel');
+[['all',`전체 (${parseInt(MONTHS[0].slice(5))}–${parseInt(CUR.slice(5))}월)`],...MONTHS.map(m=>[m,m.slice(0,4)+'년 '+parseInt(m.slice(5))+'월'])].forEach(([v,l])=>MS.add(new Option(l,v)));
+MS.onchange=()=>{
+  const sel=MS.value;
+  renderTiles(sel);
+  document.querySelectorAll('#monthly [data-m],#stack [data-m]').forEach(n=>{n.style.opacity=sel==='all'?'':n.dataset.m===sel?'1':'.3';});
+  renderRank(sel==='all'?CUR:sel);
+  renderTable(sel);
+};
 </script>
